@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptimaTrack Web v1.0</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: white; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .glass { background: rgba(17, 17, 17, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .neon-glow { box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); }
+        .critical-glow { box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.5) !important; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const INITIAL_SCHEDULE = [
+            { id: 1, t: "07:00", task: "Biological Startup", sop: "Sunlight + Hydration. No phone.", cat: "Health" },
+            { id: 2, t: "08:30", task: "Deep Work Block A", sop: "Main project execution. Airplane mode.", cat: "Work" },
+            { id: 3, t: "11:30", task: "Admin/Comms", sop: "Emails, calls, and scheduling.", cat: "Admin" },
+            { id: 4, t: "12:30", task: "Metabolic Reset", sop: "Protein-heavy meal + 15m walk.", cat: "Rest" },
+            { id: 5, t: "14:00", task: "Deep Work Block B", sop: "Creative problem solving.", cat: "Work" },
+            { id: 6, t: "17:00", task: "Physical Stress", sop: "Lift or Sprint. Verify with HR data.", cat: "Health" },
+            { id: 7, t: "21:00", task: "System Shutdown", sop: "Journal friction. Prep environment.", cat: "Rest" }
+        ];
+
+        function App() {
+            const [score, setScore] = useState(85.0);
+            const [isVerifying, setIsVerifying] = useState(false);
+            const [comment, setComment] = useState('');
+            const [hardMode, setHardMode] = useState(false);
+
+            useEffect(() => {
+                setHardMode(score < 75);
+            }, [score]);
+
+            const handleVerify = () => {
+                const boost = comment.length > 15 ? 3.0 : 0.5;
+                setScore(prev => Math.min(100, prev + boost));
+                setIsVerifying(false);
+                setComment('');
+            };
+
+            const themeColor = hardMode ? '#EF4444' : '#8B5CF6';
+
+            return (
+                <div className={`min-h-screen p-4 md:p-12 transition-colors duration-500 ${hardMode ? 'bg-red-950/20' : 'bg-black'}`}>
+                    <div className="max-w-4xl mx-auto">
+                        
+                        {/* HEADER */}
+                        <div className="text-center mb-12">
+                            <p className="text-[10px] tracking-[0.3em] text-gray-500 font-bold uppercase mb-2">
+                                {hardMode ? '⚠️ System Performance Critical' : 'Current Optimization State'}
+                            </p>
+                            <h1 className="text-7xl md:text-9xl font-black mb-4 transition-all" style={{ color: themeColor }}>
+                                {score.toFixed(1)}%
+                            </h1>
+                            <div className="w-full bg-gray-900 h-1.5 rounded-full overflow-hidden max-w-md mx-auto">
+                                <div 
+                                    className="h-full transition-all duration-1000" 
+                                    style={{ width: `${score}%`, backgroundColor: themeColor }}
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-8">
+                            {/* MAIN TASK CARD */}
+                            <div className={`md:col-span-2 glass p-8 rounded-[2rem] ${hardMode ? 'critical-glow' : 'neon-glow'}`}>
+                                <div className="flex justify-between items-start mb-6">
+                                    <span className="text-[10px] font-black px-3 py-1 border rounded text-violet-400 border-violet-400 uppercase">
+                                        Active Mission
+                                    </span>
+                                    <span className="text-gray-500 text-xs">Started: 08:30 AM</span>
+                                </div>
+                                
+                                <h2 className="text-3xl font-bold mb-2 uppercase italic">{INITIAL_SCHEDULE[1].task}</h2>
+                                <p className="text-gray-400 mb-8">{INITIAL_SCHEDULE[1].sop}</p>
+
+                                {!isVerifying ? (
+                                    <button 
+                                        onClick={() => setIsVerifying(true)}
+                                        className="w-full py-4 rounded-xl font-black tracking-widest transition-all active:scale-95"
+                                        style={{ backgroundColor: themeColor }}
+                                    >
+                                        INITIATE VERIFICATION
+                                    </button>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <textarea 
+                                            className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 text-sm focus:outline-none focus:border-violet-500"
+                                            placeholder="Log friction points or proof of work..."
+                                            value={comment}
+                                            onChange={(e) => setComment(e.target.value)}
+                                            rows="3"
+                                        ></textarea>
+                                        <button 
+                                            onClick={handleVerify}
+                                            className="w-full py-4 bg-emerald-500 rounded-xl font-black tracking-widest hover:bg-emerald-400"
+                                        >
+                                            SUBMIT AUDIT
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* SIDEBAR SCHEDULE */}
+                            <div className="space-y-4">
+                                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-2">Next Directives</h3>
+                                {INITIAL_SCHEDULE.slice(2, 6).map(item => (
+                                    <div key={item.id} className="glass p-4 rounded-2xl flex items-center gap-4 opacity-60">
+                                        <span className="text-xs font-bold text-gray-500">{item.t}</span>
+                                        <span className="text-sm font-medium">{item.task}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+</html>
