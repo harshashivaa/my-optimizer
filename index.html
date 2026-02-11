@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OptimaTrack Web v1.0</title>
+    <title>OptimaTrack V2 - Management Console</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #050505; color: white; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-        .glass { background: rgba(17, 17, 17, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .neon-glow { box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); }
-        .critical-glow { box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.5) !important; }
+        body { background-color: #050505; color: white; font-family: 'Inter', ui-monospace, monospace; }
+        .glass { background: rgba(15, 15, 15, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .editable:hover { background: rgba(139, 92, 246, 0.1); cursor: text; border-radius: 4px; }
+        input[type="range"] { accent-color: #8B5CF6; }
     </style>
 </head>
 <body>
@@ -20,105 +20,133 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const INITIAL_SCHEDULE = [
-            { id: 1, t: "07:00", task: "Biological Startup", sop: "Sunlight + Hydration. No phone.", cat: "Health" },
-            { id: 2, t: "08:30", task: "Deep Work Block A", sop: "Main project execution. Airplane mode.", cat: "Work" },
-            { id: 3, t: "11:30", task: "Admin/Comms", sop: "Emails, calls, and scheduling.", cat: "Admin" },
-            { id: 4, t: "12:30", task: "Metabolic Reset", sop: "Protein-heavy meal + 15m walk.", cat: "Rest" },
-            { id: 5, t: "14:00", task: "Deep Work Block B", sop: "Creative problem solving.", cat: "Work" },
-            { id: 6, t: "17:00", task: "Physical Stress", sop: "Lift or Sprint. Verify with HR data.", cat: "Health" },
-            { id: 7, t: "21:00", task: "System Shutdown", sop: "Journal friction. Prep environment.", cat: "Rest" }
+        const DEFAULT_SCHEDULE = [
+            { id: 1, t: "07:00", task: "Biological Startup", sop: "Sunlight + Hydration", cat: "Health", done: false },
+            { id: 2, t: "08:30", task: "Deep Work Block A", sop: "Airplane mode execution", cat: "Work", done: false },
+            { id: 3, t: "12:30", task: "Metabolic Reset", sop: "Protein meal + 15m walk", cat: "Rest", done: false }
         ];
 
         function App() {
+            const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
             const [score, setScore] = useState(85.0);
-            const [isVerifying, setIsVerifying] = useState(false);
-            const [comment, setComment] = useState('');
-            const [hardMode, setHardMode] = useState(false);
+            const [satisfaction, setSatisfaction] = useState(80);
+            const [isCompleting, setIsCompleting] = useState(false);
+            const [activeId, setActiveId] = useState(2);
 
-            useEffect(() => {
-                setHardMode(score < 75);
-            }, [score]);
-
-            const handleVerify = () => {
-                const boost = comment.length > 15 ? 3.0 : 0.5;
-                setScore(prev => Math.min(100, prev + boost));
-                setIsVerifying(false);
-                setComment('');
+            // Update Task Data Live
+            const updateTask = (id, field, value) => {
+                setSchedule(prev => prev.map(item => item.id === id ? {...item, [field]: value} : item));
             };
 
-            const themeColor = hardMode ? '#EF4444' : '#8B5CF6';
+            const completeTask = () => {
+                const taskWeight = satisfaction / 100;
+                setScore(prev => Math.min(100, prev + (5 * taskWeight)));
+                setSchedule(prev => prev.map(item => item.id === activeId ? {...item, done: true} : item));
+                setIsCompleting(false);
+                // Move to next logical task
+                if (activeId < schedule.length) setActiveId(activeId + 1);
+            };
+
+            const activeTask = schedule.find(s => s.id === activeId) || schedule[0];
 
             return (
-                <div className={`min-h-screen p-4 md:p-12 transition-colors duration-500 ${hardMode ? 'bg-red-950/20' : 'bg-black'}`}>
-                    <div className="max-w-4xl mx-auto">
+                <div className="min-h-screen p-6 md:p-12 transition-all">
+                    <div className="max-w-5xl mx-auto">
                         
-                        {/* HEADER */}
-                        <div className="text-center mb-12">
-                            <p className="text-[10px] tracking-[0.3em] text-gray-500 font-bold uppercase mb-2">
-                                {hardMode ? '⚠️ System Performance Critical' : 'Current Optimization State'}
-                            </p>
-                            <h1 className="text-7xl md:text-9xl font-black mb-4 transition-all" style={{ color: themeColor }}>
-                                {score.toFixed(1)}%
-                            </h1>
-                            <div className="w-full bg-gray-900 h-1.5 rounded-full overflow-hidden max-w-md mx-auto">
-                                <div 
-                                    className="h-full transition-all duration-1000" 
-                                    style={{ width: `${score}%`, backgroundColor: themeColor }}
-                                ></div>
+                        {/* GLOBAL SCORE HEADER */}
+                        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+                            <div>
+                                <h1 className="text-xs tracking-[0.4em] text-violet-500 font-black uppercase mb-2">Optimization Console V2</h1>
+                                <div className="text-8xl font-black italic">
+                                    {score.toFixed(1)}<span className="text-3xl text-gray-700">%</span>
+                                </div>
+                            </div>
+                            <div className="w-full md:w-64 glass p-4 rounded-2xl">
+                                <p className="text-[10px] text-gray-500 mb-2 uppercase tracking-widest">System Stability</p>
+                                <div className="h-2 bg-gray-900 rounded-full overflow-hidden">
+                                    <div className="h-full bg-violet-600 transition-all duration-1000" style={{width: `${score}%`}}></div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-8">
-                            {/* MAIN TASK CARD */}
-                            <div className={`md:col-span-2 glass p-8 rounded-[2rem] ${hardMode ? 'critical-glow' : 'neon-glow'}`}>
-                                <div className="flex justify-between items-start mb-6">
-                                    <span className="text-[10px] font-black px-3 py-1 border rounded text-violet-400 border-violet-400 uppercase">
-                                        Active Mission
-                                    </span>
-                                    <span className="text-gray-500 text-xs">Started: 08:30 AM</span>
-                                </div>
-                                
-                                <h2 className="text-3xl font-bold mb-2 uppercase italic">{INITIAL_SCHEDULE[1].task}</h2>
-                                <p className="text-gray-400 mb-8">{INITIAL_SCHEDULE[1].sop}</p>
-
-                                {!isVerifying ? (
-                                    <button 
-                                        onClick={() => setIsVerifying(true)}
-                                        className="w-full py-4 rounded-xl font-black tracking-widest transition-all active:scale-95"
-                                        style={{ backgroundColor: themeColor }}
-                                    >
-                                        INITIATE VERIFICATION
-                                    </button>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <textarea 
-                                            className="w-full bg-black/50 border border-gray-800 rounded-xl p-4 text-sm focus:outline-none focus:border-violet-500"
-                                            placeholder="Log friction points or proof of work..."
-                                            value={comment}
-                                            onChange={(e) => setComment(e.target.value)}
-                                            rows="3"
-                                        ></textarea>
-                                        <button 
-                                            onClick={handleVerify}
-                                            className="w-full py-4 bg-emerald-500 rounded-xl font-black tracking-widest hover:bg-emerald-400"
-                                        >
-                                            SUBMIT AUDIT
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* SIDEBAR SCHEDULE */}
-                            <div className="space-y-4">
-                                <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-2">Next Directives</h3>
-                                {INITIAL_SCHEDULE.slice(2, 6).map(item => (
-                                    <div key={item.id} className="glass p-4 rounded-2xl flex items-center gap-4 opacity-60">
-                                        <span className="text-xs font-bold text-gray-500">{item.t}</span>
-                                        <span className="text-sm font-medium">{item.task}</span>
+                        <div className="grid lg:grid-cols-3 gap-8">
+                            
+                            {/* LEFT: EDITABLE TASK LIST */}
+                            <div className="lg:col-span-1 space-y-4">
+                                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2">Daily Timeline (Edit Inline)</h3>
+                                {schedule.map(item => (
+                                    <div key={item.id} 
+                                         onClick={() => setActiveId(item.id)}
+                                         className={`glass p-4 rounded-2xl cursor-pointer transition-all ${item.id === activeId ? 'border-violet-500 bg-violet-500/5' : 'opacity-50'}`}>
+                                        <div className="flex justify-between items-center">
+                                            <input 
+                                                className="bg-transparent text-xs font-bold text-gray-400 outline-none w-12"
+                                                value={item.t}
+                                                onChange={(e) => updateTask(item.id, 't', e.target.value)}
+                                            />
+                                            {item.done && <span className="text-[10px] text-emerald-500 font-bold">● DONE</span>}
+                                        </div>
+                                        <input 
+                                            className="bg-transparent block w-full text-sm font-bold mt-1 outline-none editable"
+                                            value={item.task}
+                                            onChange={(e) => updateTask(item.id, 'task', e.target.value)}
+                                        />
                                     </div>
                                 ))}
                             </div>
+
+                            {/* RIGHT: TASK EXECUTION & SATISFACTION */}
+                            <div className="lg:col-span-2 space-y-6">
+                                <div className="glass p-8 rounded-[2.5rem] relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-6 opacity-10 font-black text-6xl">0{activeTask.id}</div>
+                                    
+                                    <h2 className="text-sm font-black text-violet-400 uppercase tracking-widest mb-2">Active Directive</h2>
+                                    <input 
+                                        className="bg-transparent block w-full text-4xl font-black mb-4 outline-none editable uppercase"
+                                        value={activeTask.task}
+                                        onChange={(e) => updateTask(activeTask.id, 'task', e.target.value)}
+                                    />
+                                    
+                                    <label className="text-[10px] text-gray-500 uppercase font-bold">SOP / Protocol</label>
+                                    <textarea 
+                                        className="bg-transparent block w-full text-gray-400 mt-2 outline-none editable resize-none overflow-hidden"
+                                        value={activeTask.sop}
+                                        rows="2"
+                                        onChange={(e) => updateTask(activeTask.id, 'sop', e.target.value)}
+                                    />
+
+                                    <div className="mt-12 pt-8 border-t border-white/5">
+                                        {!isCompleting ? (
+                                            <button 
+                                                onClick={() => setIsCompleting(true)}
+                                                className="w-full bg-white text-black py-4 rounded-2xl font-black hover:bg-violet-500 hover:text-white transition-all"
+                                            >
+                                                COMPLETE MISSION
+                                            </button>
+                                        ) : (
+                                            <div className="space-y-6 animate-in fade-in duration-500">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-xs font-bold uppercase tracking-widest">Satisfaction Ratio: {satisfaction}%</label>
+                                                    <span className="text-xl font-bold text-violet-500">{satisfaction < 50 ? '⚙️' : '⚡'}</span>
+                                                </div>
+                                                <input 
+                                                    type="range" min="1" max="100" 
+                                                    value={satisfaction} 
+                                                    onChange={(e) => setSatisfaction(e.target.value)}
+                                                    className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer"
+                                                />
+                                                <button 
+                                                    onClick={completeTask}
+                                                    className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black hover:bg-emerald-400 transition-all"
+                                                >
+                                                    SUBMIT VERIFIED LOG
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
